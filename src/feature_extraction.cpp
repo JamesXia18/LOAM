@@ -258,3 +258,55 @@ FeatureCloud extractFeatures(const pcl::PointCloud<pcl::PointXYZI>::Ptr& laserCl
     }   
     return output;
 }
+
+
+FeatureExtractionThread::FeatureExtractionThread(
+    SafeQueue<pcl::PointCloud<pcl::PointXYZI>::Ptr>& inputQueue,
+    SafeQueue<FeatureCloud>& outputQueue)
+    : inputQueue_(inputQueue), outputQueue_(outputQueue) {
+}
+
+FeatureExtractionThread::~FeatureExtractionThread() {
+    stop();
+}
+
+void FeatureExtractionThread::start() {
+    running_ = true;
+    worker_ = std::thread(&FeatureExtractionThread::processLoop, this);
+}
+
+void FeatureExtractionThread::stop() {
+    running_ = false;
+    inputQueue_.stop();
+    if (worker_.joinable())
+        worker_.join();
+}
+
+void FeatureExtractionThread::processLoop() {
+    std::cout << "[FeatureExtractionThread] Started." << std::endl;
+
+    while (running_) {
+        pcl::PointCloud<pcl::PointXYZI>::Ptr rawCloud;
+        if (!inputQueue_.pop(rawCloud)) {
+            if (!running_) break;
+            continue;
+        }
+
+        if (!rawCloud || rawCloud->empty()) {
+            std::cerr << "[FeatureExtractionThread] Received empty cloud." << std::endl;
+            continue;
+        }
+
+        auto start = std::chrono::steady_clock::now();
+        FeatureCloud features = extractFeatures(rawCloud);
+        auto end = std::chrono::steady_clock::now();
+
+        double ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        std::cout << "[FeatureExtractionThread] Processed 1 frame (" << rawCloud->size()
+            << " pts) in " << ms << " ms." << std::endl;
+
+        outputQueue_.push(features);
+    }
+
+    std::cout << "[FeatureExtractionThread] Stopped." << std::endl;
+}
