@@ -16,6 +16,8 @@
 struct OdomResult {
     Eigen::Matrix4f pose; // 世界坐标下的当前帧位姿
     pcl::PointCloud<pcl::PointXYZI>::Ptr registeredCloud; // 可视化/发布点云
+    int cornerCount = 0;
+    int planeCount = 0;
 };
 
 // ================== LaserOdometryThread ==================
@@ -25,23 +27,23 @@ public:
         SafeQueue<OdomResult>& outputQueue);
     ~LaserOdometryThread();
 
-    void start();
-    void stop();
+	void start(); // 启动线程
+	void stop(); // 停止线程
 
 private:
-    void processLoop();
+	void processLoop(); // 线程处理循环
     void matchAndOptimize(const FeatureCloud& currFrame);
 
-    SafeQueue<FeatureCloud>& inputQueue_;
-    SafeQueue<OdomResult>& outputQueue_;
+    SafeQueue<FeatureCloud>& inputQueue_; // 特征提取输入队列
+	SafeQueue<OdomResult>& outputQueue_; // 里程计位姿输出队列
     std::thread worker_;
-    std::atomic<bool> running_{ false };
+    std::atomic<bool> running_{ false }; // 系统运行标志
 
     // 上一帧特征
-    pcl::PointCloud<pcl::PointXYZI>::Ptr lastCorner_;
-    pcl::PointCloud<pcl::PointXYZI>::Ptr lastSurf_;
-    pcl::KdTreeFLANN<pcl::PointXYZI>::Ptr kdtreeCorner_;
-    pcl::KdTreeFLANN<pcl::PointXYZI>::Ptr kdtreeSurf_;
+	pcl::PointCloud<pcl::PointXYZI>::Ptr lastCorner_; // 上一帧角点特征
+	pcl::PointCloud<pcl::PointXYZI>::Ptr lastSurf_; // 上一帧平面特征
+	pcl::KdTreeFLANN<pcl::PointXYZI>::Ptr kdtreeCorner_; // 上一帧角点kdtree
+	pcl::KdTreeFLANN<pcl::PointXYZI>::Ptr kdtreeSurf_; // 上一帧平面点kdtree
 
     Eigen::Matrix4f poseWorld_; // 当前累计位姿
 };

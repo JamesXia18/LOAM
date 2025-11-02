@@ -60,6 +60,6 @@ int main() {
             std::cout << "Map snapshot: pose:\n" << mr.pose << " map size: " << mr.mapCloud->size() << std::endl;
         }
     }
-
+     
     return 0;
 }

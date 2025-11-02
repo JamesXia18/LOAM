@@ -5,8 +5,10 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(PCL CONFIG REQUIRED)
+find_package(Eigen3 REQUIRED NO_MODULE)
+find_package(Ceres CONFIG REQUIRED)
 
-# 列出所有 .cpp 源文件（不要把头文件当作源文件）
+# 列出所有 .cpp 源文件
 set(SRC_FILES
     src/main.cpp
     src/feature_extraction.cpp
@@ -27,4 +29,13 @@ if (DEFINED PCL_DEFINITIONS)
     target_compile_definitions(ALOAM PRIVATE ${PCL_DEFINITIONS})
 endif()
 
-target_link_libraries(ALOAM PRIVATE ${PCL_LIBRARIES})
+# 链接库：使用 Ceres::ceres 和 Eigen3::Eigen 目标（推荐）
+target_link_libraries(ALOAM PRIVATE ${PCL_LIBRARIES} Ceres::ceres Eigen3::Eigen)
+
+# 把头文件作为 target_sources 暴露给 IDE
+target_sources(ALOAM PRIVATE
+    ${CMAKE_SOURCE_DIR}/include/feature_extraction.h
+    ${CMAKE_SOURCE_DIR}/include/laser_odometry.h
+    ${CMAKE_SOURCE_DIR}/include/laser_mapping.h
+    ${CMAKE_SOURCE_DIR}/include/lidarFactor.hpp
+)

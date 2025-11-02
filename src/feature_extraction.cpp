@@ -95,7 +95,9 @@ FeatureCloud extractFeatures(const pcl::PointCloud<pcl::PointXYZI>::Ptr& laserCl
         }
 
         float relTime = (ori - startOri) / (endOri - startOri);
+        // 整数部分是线束号索引，小数部分是相对起始部分时间
         point.intensity = scanID + scanPeriod * relTime;
+        // 根据不同的线束号送到不同的点云集合里
         laserCloudScans[scanID].push_back(point);
     }
 
