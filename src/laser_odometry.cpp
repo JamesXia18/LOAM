@@ -259,6 +259,9 @@ void LaserOdometryThread::matchAndOptimize(const FeatureCloud& currFrame)
     result.pose = poseWorld_;
     result.cornerCount = corner_correspondence;
     result.planeCount = plane_correspondence;
+    result.registeredCloud.reset(new pcl::PointCloud<pcl::PointXYZI>());
+    *result.registeredCloud += *currFrame.cornerSharp;
+    *result.registeredCloud += *currFrame.surfFlat;
 
     outputQueue_.push(result);
 

@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(PCL CONFIG REQUIRED)
 find_package(Eigen3 REQUIRED NO_MODULE)
 find_package(Ceres CONFIG REQUIRED)
-
+find_package(Pangolin CONFIG REQUIRED)
 # 列出所有 .cpp 源文件
 set(SRC_FILES
     src/main.cpp
@@ -30,7 +30,12 @@ if (DEFINED PCL_DEFINITIONS)
 endif()
 
 # 链接库：使用 Ceres::ceres 和 Eigen3::Eigen 目标（推荐）
-target_link_libraries(ALOAM PRIVATE ${PCL_LIBRARIES} Ceres::ceres Eigen3::Eigen)
+target_link_libraries(ALOAM PRIVATE 
+${PCL_LIBRARIES} 
+Ceres::ceres 
+Eigen3::Eigen
+${Pangolin_LIBRARIES}
+)
 
 # 把头文件作为 target_sources 暴露给 IDE
 target_sources(ALOAM PRIVATE

@@ -18,6 +18,11 @@ struct OdomResult {
     pcl::PointCloud<pcl::PointXYZI>::Ptr registeredCloud; // 可视化/发布点云
     int cornerCount = 0;
     int planeCount = 0;
+    double timestamp = 0.0;
+
+    OdomResult() {
+        registeredCloud.reset(new pcl::PointCloud<pcl::PointXYZI>());
+    }
 };
 
 // ================== LaserOdometryThread ==================

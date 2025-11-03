@@ -1,5 +1,4 @@
-#ifndef LASER_MAPPING_THREAD_H
-#define LASER_MAPPING_THREAD_H
+#pragma once
 
 #include <thread>
 #include <atomic>
@@ -48,5 +47,3 @@ private:
     size_t maxMapSize_; // 地图最大点数，超过则裁剪或下采样
     int frameCount_;
 };
-
-#endif

@@ -22,10 +22,19 @@ public:
         cond_.notify_one();
     }
 
-    // 将队列头部元素出队并赋值给 value
+    // 将队列头部元素出队并赋值给 value （阻塞，直到有数据或 stop() 被调用）
     bool pop(T& value) {
         std::unique_lock<std::mutex> lock(mtx_);
         cond_.wait(lock, [&] { return !q_.empty() || stop_; });
+        if (q_.empty()) return false;
+        value = std::move(q_.front());
+        q_.pop();
+        return true;
+    }
+
+    // 非阻塞出队：队列为空时立即返回 false
+    bool try_pop(T& value) {
+        std::lock_guard<std::mutex> lock(mtx_);
         if (q_.empty()) return false;
         value = std::move(q_.front());
         q_.pop();
