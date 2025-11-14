@@ -12,14 +12,6 @@ struct LidarEdgeFactor {
 		// PASS
 	}
 
-	/// <summary>
-	/// costFunction
-	/// </summary>
-	/// <typeparam name="T">数据类型: 例如double</typeparam>
-	/// <param name="q">待优化变量，表示旋转四元数</param>
-	/// <param name="t">待优化变量，表示平移向量</param>
-	/// <param name="residual">残差</param>
-	/// <returns></returns>
 	template<typename T>
 	bool operator()(const T* q, const T* t, T* residual) const {
 		// 将Vector3d转换成 Eigen::Matrix<T, 3, 1>
@@ -69,14 +61,6 @@ struct LidarPlaneFactor {
 		ljm_norm.normalize();
 	}
 
-	/// <summary>
-	/// 
-	/// </summary>
-	/// <typeparam name="T">数据类型: 例如double</typeparam>
-	/// <param name="q">待优化变量，表示旋转四元数</param>
-	/// <param name="t">待优化变量，表示平移向量</param>
-	/// <param name="residual">残差</param>
-	/// <returns></returns>
 	template <typename T>
 	bool operator()(const T* q, const T* t, T* residual) const
 	{

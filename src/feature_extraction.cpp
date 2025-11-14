@@ -4,7 +4,6 @@
 #include <fstream>
 #include <algorithm>
 #include <pcl/filters/voxel_grid.h>
-#include <pcl/common/common.h>
 #include <pcl/filters/filter.h>
 
 constexpr int N_SCANS = 64; // 适用Velodyne老式激光雷达：可以是16、32、64线

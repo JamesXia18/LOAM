@@ -68,7 +68,6 @@ void LaserOdometryThread::processLoop() {
     std::cout << "[LaserOdometryThread] Stopped." << std::endl;
 }
 
-// ================== 核心：帧间匹配与位姿优化 ==================
 void LaserOdometryThread::matchAndOptimize(const FeatureCloud& currFrame)
 {
     // --- Step 0: 初始化上一帧 ---
@@ -91,7 +90,7 @@ void LaserOdometryThread::matchAndOptimize(const FeatureCloud& currFrame)
     int plane_correspondence  = 0;
 
     // --- Step 2: 迭代优化 ---
-    for (int iter = 0; iter < 3; ++iter) {
+    for (int iter = 0; iter < 5; ++iter) {
         corner_correspondence = 0;
         plane_correspondence = 0;
 
@@ -268,10 +267,4 @@ void LaserOdometryThread::matchAndOptimize(const FeatureCloud& currFrame)
     // --- Step 5: 更新上一帧 ---
     *lastCorner_ = *currFrame.cornerSharp;
     *lastSurf_ = *currFrame.surfFlat;
-
-    std::cout << "[LaserOdometryThread] Pose updated. "
-        << "Corners: " << corner_correspondence
-        << ", Planes: " << plane_correspondence << "\n";
-    std::cout << result.pose << std::endl;
-    return;
 }

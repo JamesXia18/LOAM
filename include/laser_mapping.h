@@ -8,7 +8,7 @@
 #include <pcl/point_types.h>
 #include <pcl/kdtree/kdtree_flann.h>
 
-#include "feature_extraction.h" // SafeQueue, FeatureCloud
+#include "common.hpp"
 #include "laser_odometry.h"     // OdomResult
 
 // 输出结构：mapping 后的位姿与地图快照（可选）

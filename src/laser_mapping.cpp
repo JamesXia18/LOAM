@@ -7,6 +7,7 @@
 #include <iostream>
 #include <chrono>
 
+
 LaserMappingThread::LaserMappingThread(SafeQueue<OdomResult>& inputQueue,
                                        SafeQueue<MapResult>& outputQueue,
                                        float voxel_size,
@@ -39,6 +40,13 @@ void LaserMappingThread::stop() {
 void LaserMappingThread::processLoop() {
     std::cout << "[LaserMappingThread] Started." << std::endl;
 
+    Eigen::Matrix4f T_cam_velo;
+    T_cam_velo <<
+        4.276802385584e-04f, -9.999672484946e-01f, -8.084491683471e-03f, -1.198459927713e-02f,
+        -7.210626507497e-03f, 8.081198471645e-03f, -9.999413164504e-01f, -5.403984729748e-02f,
+        9.999738645903e-01f, 4.859485810390e-04f, -7.206933692422e-03f, -2.921968648686e-01f,
+        0.0f, 0.0f, 0.0f, 1.0f;
+
     while (running_) {
         OdomResult odom;
         if (!inputQueue_.pop(odom)) {
@@ -52,10 +60,10 @@ void LaserMappingThread::processLoop() {
         double ms = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
         std::cout << "[LaserMappingThread] Integrated frame in " << ms << " ms. Map size: " << localMap_->size() << std::endl;
 
-        // 可选：每若干帧输出一个地图快照
+        // 每若干帧输出一个地图快照
         if (++frameCount_ % 2 == 0) {
             MapResult mr;
-            mr.pose = odom.pose;
+            mr.pose = T_cam_velo*odom.pose;
             {
                 std::lock_guard<std::mutex> lock(mapMutex_);
                 mr.mapCloud.reset(new pcl::PointCloud<pcl::PointXYZI>(*localMap_));

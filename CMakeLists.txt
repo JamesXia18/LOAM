@@ -43,4 +43,5 @@ target_sources(ALOAM PRIVATE
     ${CMAKE_SOURCE_DIR}/include/laser_odometry.h
     ${CMAKE_SOURCE_DIR}/include/laser_mapping.h
     ${CMAKE_SOURCE_DIR}/include/lidarFactor.hpp
+    ${CMAKE_SOURCE_DIR}/include/common.hpp
 )
