@@ -4,14 +4,44 @@
 #include <string>
 #include <mutex>
 #include <condition_variable>
+#include <filesystem>
 #include <queue>
+#include <fstream>
+
+static std::vector<std::filesystem::path> list_bin_files(const std::string& folder) {
+    namespace fs = std::filesystem;
+    std::vector<fs::path> files;
+    for (auto& p : fs::directory_iterator(folder)) {
+        if (!p.is_regular_file()) continue;
+        if (p.path().extension() == ".bin") files.push_back(p.path());
+    }
+
+    std::sort(files.begin(), files.end());
+    return files;
+}
 
 
-// ============ 线程安全队列模板 ============
+static bool save_poses_kitti(const std::string& out_file, const std::vector<Eigen::Matrix4f>& poses) {
+    std::ofstream ofs(out_file);
+    if (!ofs.is_open()) return false;
+    ofs << std::fixed << std::setprecision(9);
+    for (const auto& T : poses) {
+        for (int r = 0; r < 3; ++r) {
+            for (int c = 0; c < 4; ++c) {
+                double v = static_cast<double>(T(r, c));
+                ofs << v;
+                if (!(r == 2 && c == 3)) ofs << " ";
+            }
+        }
+        ofs << "\n";
+    }
+    ofs.close();
+    return true;
+}
+
 template <typename T>
 class SafeQueue {
 public:
-    // 将元素入队
     void push(const T& value) {
         std::unique_lock<std::mutex> lock(mtx_);
         q_.push(value);
@@ -19,7 +49,6 @@ public:
         cond_.notify_one();
     }
 
-    // 将队列头部元素出队并赋值给 value （阻塞，直到有数据或 stop() 被调用）
     bool pop(T& value) {
         std::unique_lock<std::mutex> lock(mtx_);
         cond_.wait(lock, [&] { return !q_.empty() || stop_; });
@@ -29,7 +58,6 @@ public:
         return true;
     }
 
-    // 非阻塞出队：队列为空时立即返回 false
     bool try_pop(T& value) {
         std::lock_guard<std::mutex> lock(mtx_);
         if (q_.empty()) return false;
@@ -38,7 +66,6 @@ public:
         return true;
     }
 
-    // 停止队列，唤醒所有等待的线程
     void stop() {
         std::unique_lock<std::mutex> lock(mtx_);
         stop_ = true;
@@ -46,25 +73,24 @@ public:
         cond_.notify_all();
     }
 
-    // 判断队列是否为空
     bool empty() {
         std::lock_guard<std::mutex> lock(mtx_);
         return q_.empty();
     }
 
 private:
-    std::queue<T> q_; // 底层存储元素的队列
-    std::mutex mtx_; // 互斥锁
-    std::condition_variable cond_; // 条件变量，用于线程间的等待/通知机制
-    bool stop_ = false; // 标记队列是否停止
+    std::queue<T> q_;
+    std::mutex mtx_;
+    std::condition_variable cond_;
+    bool stop_ = false;
 };
 
 
 struct FeatureCloud {
-    pcl::PointCloud<pcl::PointXYZI>::Ptr cornerSharp;      // 尖锐角点
-    pcl::PointCloud<pcl::PointXYZI>::Ptr cornerLessSharp;  // 次尖锐角点
-    pcl::PointCloud<pcl::PointXYZI>::Ptr surfFlat;         // 平面点
-    pcl::PointCloud<pcl::PointXYZI>::Ptr surfLessFlat;     // 普通面点
+    pcl::PointCloud<pcl::PointXYZI>::Ptr cornerSharp;
+    pcl::PointCloud<pcl::PointXYZI>::Ptr cornerLessSharp;
+    pcl::PointCloud<pcl::PointXYZI>::Ptr surfFlat;
+    pcl::PointCloud<pcl::PointXYZI>::Ptr surfLessFlat;
 };
 
 std::vector<float> read_lidar_data(const std::string& lidar_data_path);

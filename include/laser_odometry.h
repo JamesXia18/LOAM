@@ -10,45 +10,45 @@
 #include <pcl/point_types.h>
 #include <pcl/kdtree/kdtree_flann.h>
 
-#include "feature_extraction.h" // 包含 SafeQueue & FeatureCloud
+#include "feature_extraction.h" // 锟斤拷锟斤拷 SafeQueue & FeatureCloud
 
-// ================== 位姿结构体 ==================
 struct OdomResult {
-    Eigen::Matrix4f pose; // 世界坐标下的当前帧位姿
-    pcl::PointCloud<pcl::PointXYZI>::Ptr registeredCloud; // 可视化/发布点云
+    Eigen::Matrix4f pose;
+
     int cornerCount = 0;
     int planeCount = 0;
-    double timestamp = 0.0;
+
+    pcl::PointCloud<pcl::PointXYZI>::Ptr lastCorner_;
+    pcl::PointCloud<pcl::PointXYZI>::Ptr lastSurf_;
 
     OdomResult() {
-        registeredCloud.reset(new pcl::PointCloud<pcl::PointXYZI>());
+        lastCorner_.reset(new pcl::PointCloud<pcl::PointXYZI>());
+        lastSurf_.reset(new pcl::PointCloud<pcl::PointXYZI>());
     }
 };
 
-// ================== LaserOdometryThread ==================
 class LaserOdometryThread {
 public:
     LaserOdometryThread(SafeQueue<FeatureCloud>& inputQueue,
         SafeQueue<OdomResult>& outputQueue);
     ~LaserOdometryThread();
 
-	void start(); // 启动线程
-	void stop(); // 停止线程
+	void start();
+	void stop();
 
 private:
-	void processLoop(); // 线程处理循环
+	void processLoop();
     void matchAndOptimize(const FeatureCloud& currFrame);
 
-    SafeQueue<FeatureCloud>& inputQueue_; // 特征提取输入队列
-	SafeQueue<OdomResult>& outputQueue_; // 里程计位姿输出队列
+    SafeQueue<FeatureCloud>& inputQueue_;
+	SafeQueue<OdomResult>& outputQueue_;
     std::thread worker_;
-    std::atomic<bool> running_{ false }; // 系统运行标志
+    std::atomic<bool> running_{ false };
 
-    // 上一帧特征
-	pcl::PointCloud<pcl::PointXYZI>::Ptr lastCorner_; // 上一帧角点特征
-	pcl::PointCloud<pcl::PointXYZI>::Ptr lastSurf_; // 上一帧平面特征
-	pcl::KdTreeFLANN<pcl::PointXYZI>::Ptr kdtreeCorner_; // 上一帧角点kdtree
-	pcl::KdTreeFLANN<pcl::PointXYZI>::Ptr kdtreeSurf_; // 上一帧平面点kdtree
+	pcl::PointCloud<pcl::PointXYZI>::Ptr lastCorner_;
+	pcl::PointCloud<pcl::PointXYZI>::Ptr lastSurf_;
+	pcl::KdTreeFLANN<pcl::PointXYZI>::Ptr kdtreeCorner_;
+	pcl::KdTreeFLANN<pcl::PointXYZI>::Ptr kdtreeSurf_;
 
-    Eigen::Matrix4f poseWorld_; // 当前累计位姿
+    Eigen::Matrix4f poseWorld_;
 };

@@ -362,3 +362,12 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 /CMakePresets.json
+
+# JetBrains IDEs
+.idea/
+*.iml
+
+# CMake build directories (common local build outputs)
+cmake-build*/
+cmake-*/
+

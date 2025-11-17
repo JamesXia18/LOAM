@@ -6,11 +6,10 @@
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/filters/filter.h>
 
-constexpr int N_SCANS = 64; // 适用Velodyne老式激光雷达：可以是16、32、64线
-constexpr double scanPeriod = 0.1; // 10Hz的扫描频率
+constexpr int N_SCANS = 64;
+constexpr double scanPeriod = 0.1;
 
 std::vector<float> read_lidar_data(const std::string& lidar_data_path) {
-	// Velodyne的点云为二进制文件
 	std::ifstream lidar_data_file(lidar_data_path, std::ifstream::in | std::ifstream::binary);
 	if (!lidar_data_file) {
 		std::cerr << "Failed to open lidar data file: " << lidar_data_path << std::endl;
@@ -48,22 +47,19 @@ FeatureCloud extractFeatures(const pcl::PointCloud<pcl::PointXYZI>::Ptr& laserCl
     float startOri = -std::atan2(laserCloud.points[0].y, laserCloud.points[0].x);
     float endOri = -std::atan2(laserCloud.points[laserCloudSize - 1].y, laserCloud.points[laserCloudSize - 1].x) + 2 * M_PI;
 
-    if (endOri - startOri > 3 * M_PI) // 两者差非常小! 例如起始在179°，结束在180°
+    if (endOri - startOri > 3 * M_PI)
         endOri -= 2 * M_PI;
-    else if (endOri - startOri < M_PI) // 两者差非常大！例如起始在-179°，结束在359°
+    else if (endOri - startOri < M_PI)
         endOri += 2 * M_PI;
 
     std::vector<pcl::PointCloud<pcl::PointXYZI>> laserCloudScans(N_SCANS);
-    bool halfPassed = false; // 处理一半标志位
+    bool halfPassed = false;
 
-    // 按线束号区分不同的点云
     for (int i = 0; i < laserCloudSize; ++i) {
         pcl::PointXYZI point = laserCloud.points[i];
-        // 计算高度角
         float angle = std::atan(point.z / std::sqrt(point.x * point.x + point.y * point.y)) * 180 / M_PI;
         int scanID = 0;
 
-        // 根据高度角计算线束号
         if (N_SCANS == 16) {
             scanID = int((angle + 15) / 2 + 0.5);
             if (scanID < 0 || scanID >= 16) continue;
@@ -94,15 +90,13 @@ FeatureCloud extractFeatures(const pcl::PointCloud<pcl::PointXYZI>::Ptr& laserCl
         }
 
         float relTime = (ori - startOri) / (endOri - startOri);
-        // 整数部分是线束号索引，小数部分是相对起始部分时间
         point.intensity = scanID + scanPeriod * relTime;
-        // 根据不同的线束号送到不同的点云集合里
         laserCloudScans[scanID].push_back(point);
     }
 
     pcl::PointCloud<pcl::PointXYZI>::Ptr fullCloud(new pcl::PointCloud<pcl::PointXYZI>());
-    std::vector<int> scanStartInd(N_SCANS, 0); // 记录i线束对应全部点云中的起始序号
-    std::vector<int> scanEndInd(N_SCANS, 0); // 记录i线束对应全部点云中的终止序号
+    std::vector<int> scanStartInd(N_SCANS, 0);
+    std::vector<int> scanEndInd(N_SCANS, 0);
     // 将不同线束的点云"拼"起来
     for (int i = 0; i < N_SCANS; ++i) {
         scanStartInd[i] = static_cast<int>(fullCloud->size()) + 5;
@@ -116,17 +110,14 @@ FeatureCloud extractFeatures(const pcl::PointCloud<pcl::PointXYZI>::Ptr& laserCl
         return output;
     }
 
-    // 使用 fullCloud 大小作为后续计算基准，避免越界
     int fullCloudSize = totalPoints;
 
-    // 初始化并确保每个索引都有合理初始值
-    std::vector<float> cloudCurvature(fullCloudSize, 0.0f); // 每个点的曲率
-    std::vector<int> cloudSortInd(fullCloudSize, 0); // 记录每个点在总点云中的序列号
-    std::vector<int> cloudNeighborPicked(fullCloudSize, 0); // 每个点邻居点是否被选择
-    std::vector<int> cloudLabel(fullCloudSize, 0); // 当前点的状态位 0: 普通点 2:尖锐的角点 1:角点 -1:平面点
+    std::vector<float> cloudCurvature(fullCloudSize, 0.0f);
+    std::vector<int> cloudSortInd(fullCloudSize, 0);
+    std::vector<int> cloudNeighborPicked(fullCloudSize, 0);
+    std::vector<int> cloudLabel(fullCloudSize, 0);
     for (int i = 0; i < fullCloudSize; ++i) cloudSortInd[i] = i;
 
-	// 计算每个点的曲率（有效范围 5 .. size-5）
     for (int i = 5; i < fullCloudSize - 5; ++i) {
         float diffX = 0.0f, diffY = 0.0f, diffZ = 0.0f;
         for (int j = -5; j <= 5; ++j) {
@@ -141,19 +132,17 @@ FeatureCloud extractFeatures(const pcl::PointCloud<pcl::PointXYZI>::Ptr& laserCl
         diffZ -= 10.0f * fullCloud->points[i].z;
 
         cloudCurvature[i] = diffX * diffX + diffY * diffY + diffZ * diffZ;
-        // cloudSortInd[i] 已经初始化为 i
+
         cloudNeighborPicked[i] = 0;
         cloudLabel[i] = 0;
     }
 
-	// 特征点提取
     for (int i = 0; i < N_SCANS; ++i) {
         if (scanEndInd[i] - scanStartInd[i] < 6)
             continue;
 
         pcl::PointCloud<pcl::PointXYZI>::Ptr surfPointsLessFlatScan(new pcl::PointCloud<pcl::PointXYZI>);
 
-        // 每个线束分成6个区段，均匀选点
         for (int j = 0; j < 6; ++j) {
             int sp = scanStartInd[i] + (scanEndInd[i] - scanStartInd[i]) * j / 6;
             int ep = scanStartInd[i] + (scanEndInd[i] - scanStartInd[i]) * (j + 1) / 6 - 1;
@@ -162,11 +151,9 @@ FeatureCloud extractFeatures(const pcl::PointCloud<pcl::PointXYZI>::Ptr& laserCl
             if (sp < 0) sp = 0;
             if (ep >= fullCloudSize) ep = fullCloudSize - 1;
 
-            // 按曲率升序排序
             std::sort(cloudSortInd.begin() + sp, cloudSortInd.begin() + ep + 1,
                 [&](int a, int b) { return cloudCurvature[a] < cloudCurvature[b]; });
 
-            // ----- (1) 选择角点 -----
             int largestPickedNum = 0;
             for (int k = ep; k >= sp; k--) {
                 int ind = cloudSortInd[k];
@@ -185,7 +172,6 @@ FeatureCloud extractFeatures(const pcl::PointCloud<pcl::PointXYZI>::Ptr& laserCl
                 }
                 else break;
 
-                // 抑制邻域
                 cloudNeighborPicked[ind] = 1;
                 for (int l = 1; l <= 5; ++l) {
                     if (ind + l >= fullCloudSize) break;
@@ -207,7 +193,6 @@ FeatureCloud extractFeatures(const pcl::PointCloud<pcl::PointXYZI>::Ptr& laserCl
                 }
             }
 
-            // ----- (2) 选择平面点 -----
             int smallestPickedNum = 0;
             for (int k = sp; k <= ep; ++k) {
                 int ind = cloudSortInd[k];
@@ -242,14 +227,12 @@ FeatureCloud extractFeatures(const pcl::PointCloud<pcl::PointXYZI>::Ptr& laserCl
                 }
             }
 
-            // ----- (3) 其他点归入 less flat -----
             for (int k = sp; k <= ep; ++k) {
                 if (cloudLabel[k] <= 0)
                     surfPointsLessFlatScan->push_back(fullCloud->points[k]);
             }
         }
 
-        // 对每个线束的普通面点下采样
         pcl::VoxelGrid<pcl::PointXYZI> downSizeFilter;
         downSizeFilter.setInputCloud(surfPointsLessFlatScan);
         downSizeFilter.setLeafSize(0.2f, 0.2f, 0.2f);
